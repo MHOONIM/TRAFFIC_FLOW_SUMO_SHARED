@@ -47,8 +47,8 @@ if __name__ == "__main__":
 
     # ========== Initialise simulation parameters
     training_episode = 200  # Define total required gradient updating step
-    batch_trajectories = 5  # 40 <= B <= 45 in original paper.
-    trajectory_budget = int(100/sumo_time_step)  # Define trajectories budget for the agent (batch size of the observation) (horizon)
+    batch_trajectories = 1  # 40 <= B <= 45 in original paper.
+    trajectory_budget = int(1000/sumo_time_step)  # Define trajectories budget for the agent (batch size of the observation) (horizon)
     warmup_time = 100/sumo_time_step # Get warmup time
     one_hour = 3600/sumo_time_step  # Define one hour time. (s)
     # Single-ring configuration 
@@ -223,7 +223,7 @@ if __name__ == "__main__":
         # ---------- After all 'B' trajectories have been collected and trained,
         # Increase the training counter and save the model
         agent.training_record += 1  # Update the training_record.
-        agent.training_saving(training_save=True, model_save=True)  # save the models.
+        agent.training_saving(training_save=False, model_save=False)  # save the models.
 
     # ========== Training Loop End
 
@@ -231,6 +231,6 @@ if __name__ == "__main__":
     print('Training_Finished !!')
 
     # ========== Save the models
-    agent.training_saving(training_save=True, model_save=True)
+    agent.training_saving(training_save=False, model_save=False)
 
     # ********************************************************************** Main Program End ********************************************************************************

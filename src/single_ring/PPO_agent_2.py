@@ -73,7 +73,7 @@ class Autonomous_Vehicle_Agent():
         self.observation_size = int(observation_budget*horizon)
         self.state_obs = np.zeros([self.observation_size, len(self.state)], dtype=float)
         self.action_obs = np.zeros([self.observation_size], dtype=float)  # Store longitudinal actions
-        self.action_policy_obs = np.zeros([self.observation_size, len(self.action_policy)], dtype=float)  # Store \pi_t|a_t
+        self.action_policy_obs = np.zeros([self.observation_size], dtype=float)  # Store \pi_t|a_t
         self.reward_obs = np.zeros([self.observation_size], dtype=float) 
         self.termination_obs = np.zeros([self.observation_size], dtype=bool)
         self.next_state_obs = np.zeros([self.observation_size, len(self.next_state)], dtype=float)
@@ -183,21 +183,21 @@ class Autonomous_Vehicle_Agent():
             # Get Action (Predict from the policy network)
             action_mu, action_var = self.actor(tf.convert_to_tensor(np.expand_dims(state, axis=0)))
             action_dist = tfp.distributions.Normal(loc=action_mu, scale=tf.math.sqrt(action_var))
-            action_sample = tf.clip_by_value(action_dist.sample(), self.decel, self.accel)
-            action_policy = action_dist.prob(action_sample)
+            action_sample = action_dist.sample()
+            action_policy = action_dist.prob(action_sample).numpy()
         else:
             # If the action is pre-defined, It means that this is the warm-up step.
             action_sample = action
             action_policy = tf.constant([1], dtype=tf.float32)
 
         # Store action_policy (For visualisation)
-        self.action_policy_append = np.append(self.action_policy_append, action_policy.numpy()[0])
+        self.action_policy_append = np.append(self.action_policy_append, action_policy)
 
         # Initialise Duration for speed changing
         duration = int(1/self.sumo_time_step)  # 1s/sumo_time_step(0.1s)
         # Convert to numpy
         # action_long = longitudinal_action_tensor.numpy()[0]
-        action_long = action_sample.numpy()[0]
+        action_long = np.clip(action_sample.numpy(), a_min=self.decel, a_max=self.accel)
         # Retrieve Desired Speed
         desired_speed = np.clip(a=(state[0]+action_long), a_min=0, a_max=self.max_speed)
         # Perform longitudinal action --> Use 'slowDown' command
@@ -205,7 +205,7 @@ class Autonomous_Vehicle_Agent():
         # Perform lateral action (If lane changing is not permitted.)
         # Return action and policy
         # Note: Return the action and policy from the model prediction before clipping
-        return action_sample.numpy()[0], action_policy.numpy()[0], dummy
+        return action_sample.numpy(), dummy, action_policy
     
     # Observation storing method (Observation)
     def observation_storing(self, index, state, action, policy, reward, termination, next_state):
@@ -336,7 +336,7 @@ class Autonomous_Vehicle_Agent():
             old_policy_tensor = tf.convert_to_tensor(self.action_policy_obs, dtype=tf.float32)
             # a_hat_tensor = tf.convert_to_tensor(a_hat, dtype=tf.float32)
             # v_s_t_tensor = tf.convert_to_tensor(v_s_t, dtype=tf.float32)
-
+            
             # Tensorflow gradient tape
             # ------------------ Tape_1: Updating the Policy Network (Actor) start ------------------
             with tf.GradientTape() as tape_1:
@@ -345,6 +345,7 @@ class Autonomous_Vehicle_Agent():
                 tape_1.watch(old_policy_tensor)
                 # tape_1.watch(v_s_t_tensor)
                 # Predict policies from the current actor model.
+                # print(old_policy_tensor)
                 new_goal_mu, new_goal_var = self.actor(state_obs_tensor)
                 new_goal_dist = tfp.distributions.Normal(loc=new_goal_mu, scale=tf.math.sqrt(new_goal_var))
                 new_policy_tensor = new_goal_dist.prob(new_goal_dist.sample())  # Get the policies
@@ -353,7 +354,7 @@ class Autonomous_Vehicle_Agent():
                 # prob_ratio = tf.math.exp(tf.math.log(new_policy_tensor) - tf.math.log(old_policy_tensor))
                 # Unclipped Term
                 un_clipped = prob_ratio * v_s_t
-                # Clipped Term
+                # Clipped Termgit 
                 clipped = tf.clip_by_value(prob_ratio, 1-epsilon, 1+epsilon) * v_s_t
                 # Cost Function
                 policy_cost = -tf.reduce_mean(tf.math.minimum(un_clipped, clipped))
