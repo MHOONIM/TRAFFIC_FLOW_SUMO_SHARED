@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<routes>
+    <!-- IDM Model -->
+    <!-- Non Controlled-->
+    <vType id="human" 
+    accel="1.0" 
+    decel="1.5" 
+    tau="1.0"
+    minGap="2.0" 
+    maxSpeed="30" 
+    speedFactor="1.0" 
+    speedDev="0.1" 
+    sigma="0.2" 
+    length="5" 
+    impatience="0.5"
+    delta="4"
+    carFollowModel="IDM"
+    color="255,255,255"/>
+
+    <!-- Controlled-->
+    <vType id="rl_agent" 
+    accel="1.0" 
+    decel="1.5" 
+    tau="1.0"
+    minGap="2.0" 
+    maxSpeed="30" 
+    speedFactor="1.0" 
+    speedDev="0.1" 
+    sigma="0" 
+    length="5" 
+    impatience="0.5"
+    delta="4"
+    carFollowModel="IDM"
+    color="255,0,0"/>
+
+    <!-- Total 12 routes -->
+    <route id="0" edges="right left"/>
+
+</routes>
